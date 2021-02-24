@@ -1,0 +1,59 @@
+---
+title: "Clinical Analysis  of Unknown Sequence"
+author: "Tanner Ashurst"
+date: "24/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Preparation
+
+The following report requires the use of the listed libraries below.
+```{r}
+library(BiocManager)
+library(genbankr)
+library(Biostrings)
+library(ggtree)
+library(annotate)
+library(reshape2)
+library(rentrez)
+library(ggplot2)
+library(ape)
+```
+
+To begin, the unknown sequence of interest is imported and condensed into a more manageable object called "seq."
+```{r}
+seq <- c("ATGTCTGATAATGGACCCCAAAATCAGCGAAATGCACCCCGCATTACGTTTGGTGGACCCTCAGATTCAACTGGCAGTAACCAGAATGGAGAACGCAGTGGGGCGCGATCAAAACAACGTCGGCCCCAAGGTTTACCCAATAATACTGCGTCTTGGTTCACCGCTCTCACTCAACATGGCAAGGAAGACCTTAAATTCCCTCGAGGACAAGGCGTTCCAATTAACACCAATAGCAGTCCAGATGACCAAATTGGCTACTACCGAAGAGCTACCAGACGAATTCGTGGTGGTGACGGTAAAATGAAAGATCTCAGTCCAAGATGGTATTTCTACTACCTAGGAACTGGGCCAGAAGCTGGACTTCCCTATGGTGCTAACAAAGACGGCATCATATGGGTTGCAACTGAGGGAGCCTTGAATACACCAAAAGATCACATTGGCACCCGCAATCCTGCTAACAATGCTGCAATCGTGCTACAACTTCCTCAAGGAACAACATTGCCAAAAGGCTTCTACGCAGAAGGGAGCAGAGGCGGCAGTCAAGCCTCTTCTCGTTCCTCATCACGTAGTCGCAACAGTTCAAGAAATTCAACTCCAGGCAGCAGTAGGGGAACTTCTCCTGCTAGAATGGCTGGCAATGGCGGTGATGCTGCTCTTGCTTTGCTGCTGCTTGACAGATTGAACCAGCTTGAGAGCAAAATGTCTGGTAAAGGCCAACAACAACAAGGCCAAACTGTCACTAAGAAATCTGCTGCTGAGGCTTCTAAGAAGCCTCGGCAAAAACGTACTGCCACTAAAGCATACAATGTAACACAAGCTTTCGGCAGACGTGGTCCAGAACAAACCCAAGGAAATTTTGGGGACCAGGAACTAATCAGACAAGGAACTGATTACAAACATTGGCCGCAAATTGCACAATTTGCCCCCAGCGCTTCAGCGTTCTTCGGAATGTCGCGCATTGGCATGGAAGTCACACCTTCGGGAACGTGGTTGACCTACACAGGTGCCATCAAATTGGATGACAAAGATCCAAATTTCAAAGATCAAGTCATTTTGCTGAATAAGCATATTGACGCATACAAAACATTCCCACCAACAGAGCCTAAAAAGGACAAAAAGAAGAAGGCTGATGAAACTCAAGCCTTACCGCAGAGACAGAAGAAACAGCAAACTGTGACTCTTCTTCCTGCTGCAGATTTGGATGATTTCTCCAAACAATTGCAACAATCCATGAGCAGTGCTGACTCAACTCAGGCCTAA")
+```
+## Sequence Analysis
+
+```{r}
+seqBLAST <- blastSequences(paste(seq), as = 'data.frame', hitListSize = 20, timeout = 600)
+seqHitsDF <- data.frame(Accession = seqBLAST$Hit_accession, Sequence = seqBLAST$Hsp_hseq, stringsAsFactors = F)
+```
+
+```{r}
+seqHitsDNA <- sapply(seqHitsDF$Sequence, strsplit, split = '')
+names(seqHitsDNA) <- paste(1:nrow(seqHitsDF), seqHitsDF$Accession, sep = '_')
+seqHitsDNA <- as.DNAbin(seqHitsDNA)
+seqAlign <-muscle(seqHitsDNA, quiet = FALSE)
+```
+## Results
+```{r}
+checkAlignment(seqAlign, what = 1)
+checkAlignment(seqAlign, what = 2)
+```
+Figure 1. Alignments of the BLASTed sequences showing 100% conservation in genetic sequence. Nucleotide bases are identified by colour.
+
+```{r}
+seqDM <- dist.dna(seqAlign, model = 'K80')
+seqTree <- nj(seqDM)
+ggtree(seqTree, branch.length = 'none') + geom_tiplab()
+```
+Figure 2. Phylogenetic tree showing relationships between BLASTed sequences. Accession numbers identify each sequence.
+
+## Conclusions
+From the above analysis we can conclude that the unknown sequence of interest is from the Sars-CoV-2 virus. This is seen in figure 1 as the unknown sequence shows 100% conservation with the aligned sequences, identified as being from Sars-CoV-2. We also see the close relationship between the aligned sequences from figure 2, further proving the identiy of teh unknown sequence. This is a very concerning find as it shows presence of the lethal disease within the patient. They should be kept in isolation and anyone with whom they have had contact should be tested and self-quarantined as well. From
+
